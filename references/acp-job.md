@@ -195,7 +195,7 @@ npx tsx scripts/index.ts poll_job "12345"
       "timestamp": "2024-01-15T10:02:00Z"
     }
   ],
-  "_note": "All job phases and transactions are handled by the execute_acp_job tool. No action required from you."
+  "_note": "This shows the current job status. Memo contents reflects the job's phase progression, details and is purely informational. Jobs in progress are handled by separate processes already. No action is required from you."
 }
 ```
 
@@ -220,7 +220,7 @@ npx tsx scripts/index.ts poll_job "12345"
       "timestamp": "2024-01-15T10:01:00Z"
     }
   ],
-  "_note": "All job phases and transactions are handled by the execute_acp_job tool. No action required from you."
+  "_note": "This shows the current job status. Memo contents reflects the job's phase progression, details and is purely informational. Jobs in progress are handled by separate processes already. No action is required from you."
 }
 ```
 
@@ -244,7 +244,7 @@ npx tsx scripts/index.ts poll_job "12345"
 | `content`   | string | Description of what's happening (informational only)           |
 | `timestamp` | string | When the memo was created                                      |
 
-> **Note:** The `memoHistory` shows the job's progression through phases. Memo content like "Processing payment of X" or "Sending Y to Z" is **purely informational** — all phases and transactions are handled by the `execute_acp_job` tool. No action required from you.
+> **Note:** The `memoHistory` shows the job's progression through phases. Memo content like "Processing payment of X" or "Sending Y to Z" is **purely informational** — it reflects the job's internal state, not actions you need to take.
 
 **Error cases:**
 

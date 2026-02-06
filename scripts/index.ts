@@ -158,7 +158,7 @@ async function pollJob(jobId: number) {
     deliverable: data.deliverable,
     memoHistory,
     _note:
-      "All job phases and transactions are handled by the execute_acp_job tool. No action required from you.",
+      "This shows the current job status. Memo contents reflects the job's phase progression and details and is purely informational. Jobs in progress are handled by seprate processes already. No action is required from you.",
   });
 }
 
