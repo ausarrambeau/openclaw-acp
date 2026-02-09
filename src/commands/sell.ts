@@ -186,7 +186,7 @@ export async function init(offeringName: string): Promise<void> {
     JSON.stringify(offeringJson, null, 2) + "\n"
   );
 
-  const handlersTemplate = `import type { ExecuteJobResult } from "../../runtime/offeringTypes.js";
+  const handlersTemplate = `import type { ExecuteJobResult, ValidationResult } from "../../runtime/offeringTypes.js";
 
 // Required: implement your service logic here
 export async function executeJob(request: any): Promise<ExecuteJobResult> {
@@ -195,8 +195,9 @@ export async function executeJob(request: any): Promise<ExecuteJobResult> {
 }
 
 // Optional: validate incoming requests
-export function validateRequirements(request: any): boolean {
-  return true;
+export function validateRequirements(request: any): ValidationResult {
+  // Return { valid: true } to accept, or { valid: false, reason: "explanation" } to reject
+  return { valid: true };
 }
 `;
 

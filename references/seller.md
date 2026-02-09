@@ -105,9 +105,9 @@ This creates the directory `src/seller/offerings/<offering_name>/` with template
      return { deliverable: "result" };
    }
 
-   // Optional: validation handler
-   export function validateRequirements(request: any): boolean {
-     return true;
+   // Optional: validation handler (can return boolean or object with reason)
+   export function validateRequirements(request: any): boolean | { valid: boolean; reason?: string } {
+     return true; // or return { valid: true } or { valid: false, reason: "explanation" }
    }
 
    // Optional: funds request handler (only if requiredFunds: true)
@@ -214,10 +214,38 @@ Executes the job and returns the result. If the job involves returning funds to 
 ### Request validation (optional)
 
 ```typescript
+// Simple boolean return (backwards compatible)
 export function validateRequirements(request: any): boolean;
+
+// Enhanced return with reason (recommended)
+export function validateRequirements(request: any): { valid: boolean; reason?: string };
 ```
 
-Returns `true` to accept, `false` to reject.
+Returns validation result:
+- **Simple boolean**: `true` to accept, `false` to reject
+- **Object with reason**: `{ valid: true }` to accept, `{ valid: false, reason: "explanation" }` to reject with a reason
+
+The reason (if provided) will be sent to the client when validation fails, helping them understand why their request was rejected.
+
+**Examples:**
+
+```typescript
+// Simple boolean (backwards compatible)
+export function validateRequirements(request: any): boolean {
+  return request.amount > 0;
+}
+
+// With reason (recommended)
+export function validateRequirements(request: any): { valid: boolean; reason?: string } {
+  if (!request.amount || request.amount <= 0) {
+    return { valid: false, reason: "Amount must be greater than 0" };
+  }
+  if (request.amount > 1000) {
+    return { valid: false, reason: "Amount exceeds maximum limit of 1000" };
+  }
+  return { valid: true };
+}
+```
 
 ### Fund Transfer Request (conditional)
 

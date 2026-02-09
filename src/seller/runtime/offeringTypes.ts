@@ -23,18 +23,24 @@ export interface ExecuteJobResult {
 }
 
 /**
+ * Validation result returned by validateRequirements handler.
+ * Can be a simple boolean (backwards compatible) or an object with valid flag and optional reason.
+ */
+export type ValidationResult = boolean | { valid: boolean; reason?: string };
+
+/**
  * The handler set every offering must / can export.
  *
  * Required:
  *   executeJob(request) => ExecuteJobResult
  *
  * Optional:
- *   validateRequirements(request) => boolean
+ *   validateRequirements(request) => boolean | { valid: boolean, reason?: string }
  *   requestAdditionalFunds(request) => { amount, tokenAddress, recipient }
  */
 export interface OfferingHandlers {
   executeJob: (request: Record<string, any>) => Promise<ExecuteJobResult>;
-  validateRequirements?: (request: Record<string, any>) => boolean;
+  validateRequirements?: (request: Record<string, any>) => ValidationResult;
   requestAdditionalFunds?: (request: Record<string, any>) => {
     amount: number;
     tokenAddress: string;

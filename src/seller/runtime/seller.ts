@@ -127,14 +127,27 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
       const { config, handlers } = await loadOffering(offeringName);
 
       if (handlers.validateRequirements) {
-        const valid = handlers.validateRequirements(requirements);
-        if (!valid) {
+        const validationResult = handlers.validateRequirements(requirements);
+
+        let isValid: boolean;
+        let reason: string | undefined;
+
+        if (typeof validationResult === "boolean") {
+          isValid = validationResult;
+          reason = isValid ? undefined : "Validation failed";
+        } else {
+          isValid = validationResult.valid;
+          reason = validationResult.reason;
+        }
+
+        if (!isValid) {
+          const rejectionReason = reason || "Validation failed";
           console.log(
-            `[seller] Validation failed for offering "${offeringName}" — rejecting`
+            `[seller] Validation failed for offering "${offeringName}" — rejecting: ${rejectionReason}`
           );
           await acceptOrRejectJob(jobId, {
             accept: false,
-            reason: "Validation failed",
+            reason: rejectionReason,
           });
           return;
         }
