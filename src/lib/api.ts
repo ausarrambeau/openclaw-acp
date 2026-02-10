@@ -1,8 +1,8 @@
-// ---------------------------------------------------------------------------
-// Types (mirrors the minimal subset we need for job offerings)
-// ---------------------------------------------------------------------------
+// =============================================================================
+// ACP API wrappers for job offerings and resources.
+// =============================================================================
 
-import client from "./client";
+import client from "./client.js";
 
 export interface PriceV2 {
   type: "fixed";
@@ -27,12 +27,6 @@ export interface Resource {
   params?: Record<string, any>;
 }
 
-export interface CreateJobOfferingResponse {
-  success: boolean;
-  /** Raw response body from the ACP API (shape may evolve). */
-  data?: unknown;
-}
-
 export interface AgentData {
   name: string;
   tokenAddress: string;
@@ -40,16 +34,11 @@ export interface AgentData {
   offerings: JobOfferingData[];
 }
 
-// ---------------------------------------------------------------------------
-// ACP job offerings (register / delist)
-// ---------------------------------------------------------------------------
+export interface CreateJobOfferingResponse {
+  success: boolean;
+  data?: unknown;
+}
 
-/**
- * Register a job offering on ACP by calling POST /acp/job-offerings.
- *
- * @param apiKey   - The x-api-key for authenticating with the ACP service.
- * @param offering - The job offering payload.
- */
 export async function createJobOffering(
   offering: JobOfferingData
 ): Promise<{ success: boolean; data?: AgentData }> {

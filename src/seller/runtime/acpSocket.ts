@@ -68,7 +68,6 @@ export function connectAcpSocket(opts: AcpSocketOptions): () => void {
     console.error(`[socket] Connection error: ${err.message}`);
   });
 
-  // Graceful shutdown
   const disconnect = () => {
     socket.disconnect();
   };

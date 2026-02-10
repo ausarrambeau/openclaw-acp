@@ -3,24 +3,21 @@
 // Seller runtime — main entrypoint.
 //
 // Usage:
-//   npx tsx seller/runtime/seller.ts
-//   (or)  npm run seller:run
-//
-// Env vars:
-//   LITE_AGENT_API_KEY   — can also be set in config.json at repo root
+//   npx tsx src/seller/runtime/seller.ts
+//   (or)  acp serve start
 // =============================================================================
 
-import { connectAcpSocket } from "./acpSocket";
-import { acceptOrRejectJob, requestPayment, deliverJob } from "./sellerApi";
-import { loadOffering, listOfferings } from "./offerings";
-import { AcpJobPhase, type AcpJobEventData } from "./types";
-import type { ExecuteJobResult } from "./offeringTypes";
-import { getMyAgentInfo } from "../../scripts/wallet";
+import { connectAcpSocket } from "./acpSocket.js";
+import { acceptOrRejectJob, requestPayment, deliverJob } from "./sellerApi.js";
+import { loadOffering, listOfferings } from "./offerings.js";
+import { AcpJobPhase, type AcpJobEventData } from "./types.js";
+import type { ExecuteJobResult } from "./offeringTypes.js";
+import { getMyAgentInfo } from "../../lib/wallet.js";
 import {
   checkForExistingProcess,
   writePidToConfig,
   removePidFromConfig,
-} from "../../scripts/config.js";
+} from "../../lib/config.js";
 
 function setupCleanupHandlers(): void {
   const cleanup = () => {
@@ -53,17 +50,12 @@ function setupCleanupHandlers(): void {
   });
 }
 
-// ── Config ──────────────────────────────────────────────────────────────────
+// -- Config --
 
 const ACP_URL = "https://acpx.virtuals.io";
 
-// ── Job handling ────────────────────────────────────────────────────────────
+// -- Job handling --
 
-/**
- * Try to extract the offering name from the job event.
- * The ACP backend stores it in `context.jobOfferingName` or the first
- * negotiation-phase memo's content may include it.
- */
 function resolveOfferingName(data: AcpJobEventData): string | undefined {
   try {
     const negotiationMemo = data.memos.find(
@@ -72,18 +64,14 @@ function resolveOfferingName(data: AcpJobEventData): string | undefined {
     if (negotiationMemo) {
       return JSON.parse(negotiationMemo.content).name;
     }
-  } catch (error) {
+  } catch {
     return undefined;
   }
 }
 
-/**
- * Try to extract the service requirements object from the job event.
- */
 function resolveServiceRequirements(
   data: AcpJobEventData
 ): Record<string, any> {
-  // Memo with nextPhase = NEGOTIATION carries the buyer's request
   const negotiationMemo = data.memos.find(
     (m) => m.nextPhase === AcpJobPhase.NEGOTIATION
   );
@@ -110,7 +98,7 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
   console.log(`         context=${JSON.stringify(data.context)}`);
   console.log(`${"=".repeat(60)}`);
 
-  // ── Step 1: Accept / reject ───────────────────────────────────────────
+  // Step 1: Accept / reject
   if (data.phase === AcpJobPhase.REQUEST) {
     if (!data.memoToSign) {
       return;
@@ -127,7 +115,6 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
     const offeringName = resolveOfferingName(data);
     const requirements = resolveServiceRequirements(data);
 
-    // Optional: validate via handler
     if (!offeringName) {
       await acceptOrRejectJob(jobId, {
         accept: false,
@@ -140,14 +127,27 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
       const { config, handlers } = await loadOffering(offeringName);
 
       if (handlers.validateRequirements) {
-        const valid = handlers.validateRequirements(requirements);
-        if (!valid) {
+        const validationResult = handlers.validateRequirements(requirements);
+
+        let isValid: boolean;
+        let reason: string | undefined;
+
+        if (typeof validationResult === "boolean") {
+          isValid = validationResult;
+          reason = isValid ? undefined : "Validation failed";
+        } else {
+          isValid = validationResult.valid;
+          reason = validationResult.reason;
+        }
+
+        if (!isValid) {
+          const rejectionReason = reason || "Validation failed";
           console.log(
-            `[seller] Validation failed for offering "${offeringName}" — rejecting`
+            `[seller] Validation failed for offering "${offeringName}" — rejecting: ${rejectionReason}`
           );
           await acceptOrRejectJob(jobId, {
             accept: false,
-            reason: "Validation failed",
+            reason: rejectionReason,
           });
           return;
         }
@@ -163,8 +163,12 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
           ? handlers.requestAdditionalFunds(requirements)
           : undefined;
 
+      const paymentReason = handlers.requestPayment
+        ? handlers.requestPayment(requirements)
+        : funds?.content ?? "Request accepted";
+
       await requestPayment(jobId, {
-        content: "Request accepted",
+        content: paymentReason,
         payableDetail: funds
           ? {
               amount: funds.amount,
@@ -178,8 +182,7 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
     }
   }
 
-  // ── Already past REQUEST — handle TRANSACTION (deliver) ───────────────
-
+  // Handle TRANSACTION (deliver)
   if (data.phase === AcpJobPhase.TRANSACTION) {
     const offeringName = resolveOfferingName(data);
     const requirements = resolveServiceRequirements(data);
@@ -217,7 +220,7 @@ async function handleNewTask(data: AcpJobEventData): Promise<void> {
   );
 }
 
-// ── Main ────────────────────────────────────────────────────────────────────
+// -- Main --
 
 async function main() {
   checkForExistingProcess();

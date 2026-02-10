@@ -25,13 +25,12 @@ export interface LoadedOffering {
 }
 
 /**
- * Load a named offering from `seller/offerings/<name>/`.
+ * Load a named offering from `src/seller/offerings/<name>/`.
  * Expects `offering.json` and `handlers.ts` in that directory.
  */
 export async function loadOffering(
   offeringName: string
 ): Promise<LoadedOffering> {
-  // seller/runtime/ is two levels inside seller/ — offerings live at seller/offerings/
   const offeringsRoot = path.resolve(
     __dirname,
     "..",
@@ -66,7 +65,7 @@ export async function loadOffering(
 }
 
 /**
- * List all available offering names (subdirectories under seller/offerings/).
+ * List all available offering names (subdirectories under offerings/).
  */
 export function listOfferings(): string[] {
   const offeringsRoot = path.resolve(__dirname, "..", "offerings");

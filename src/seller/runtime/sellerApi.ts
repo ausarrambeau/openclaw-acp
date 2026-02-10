@@ -1,12 +1,10 @@
 // =============================================================================
-// Seller API stubs.
-// Each function represents a seller action performed via an API call (by jobId).
-// For now they only log — swap with real HTTP calls when the API is ready.
+// Seller API calls — accept/reject, request payment, deliver.
 // =============================================================================
 
-import client from "../../scripts/client";
+import client from "../../lib/client.js";
 
-// ── Accept / Reject ─────────────────────────────────────────────────────────
+// -- Accept / Reject --
 
 export interface AcceptOrRejectParams {
   accept: boolean;
@@ -26,7 +24,7 @@ export async function acceptOrRejectJob(
   await client.post(`/acp/providers/jobs/${jobId}/accept`, params);
 }
 
-// ── Payment request ─────────────────────────────────────────────────────────
+// -- Payment request --
 
 export interface RequestPaymentParams {
   content: string;
@@ -44,7 +42,7 @@ export async function requestPayment(
   await client.post(`/acp/providers/jobs/${jobId}/requirement`, params);
 }
 
-// ── Deliver ─────────────────────────────────────────────────────────────────
+// -- Deliver --
 
 export interface DeliverJobParams {
   deliverable: string | { type: string; value: unknown };

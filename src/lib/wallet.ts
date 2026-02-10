@@ -1,11 +1,15 @@
-import client from "./client";
+// =============================================================================
+// Wallet / agent info retrieval.
+// =============================================================================
+
+import client from "./client.js";
 
 export async function getMyAgentInfo(): Promise<{
   name: string;
   description: string;
   tokenAddress: string;
   walletAddress: string;
-  jobOfferings: {
+  jobs: {
     name: string;
     priceV2: {
       type: string;
