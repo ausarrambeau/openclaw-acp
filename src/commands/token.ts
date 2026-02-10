@@ -22,11 +22,16 @@ export async function launch(
   try {
     const info = await getMyAgentInfo();
     if (info.tokenAddress) {
-      output.output({ alreadyLaunched: true, tokenAddress: info.tokenAddress }, () => {
-        output.heading("Token Already Launched");
-        output.field("Token Address", info.tokenAddress);
-        output.log("\n  Each agent can only launch one token. Run `acp token info` for details.\n");
-      });
+      output.output(
+        { alreadyLaunched: true, tokenAddress: info.tokenAddress },
+        () => {
+          output.heading("Token Already Launched");
+          output.field("Token Address", info.tokenAddress);
+          output.log(
+            "\n  Each agent can only launch one token. Run `acp token info` for details.\n"
+          );
+        }
+      );
       return;
     }
   } catch {
@@ -59,8 +64,13 @@ export async function info(): Promise<void> {
     output.output(agentInfo, (data) => {
       output.heading("Agent Token");
       if (data.tokenAddress) {
-        output.field("Token Address", data.tokenAddress);
-        output.field("Agent Name", data.name);
+        output.field("Name", data.token.name);
+        output.field("Symbol", output.formatSymbol(data.token.symbol));
+        output.field("Address", data.tokenAddress);
+        output.field(
+          "URL",
+          `https://app.virtuals.io/prototypes/${data.tokenAddress}`
+        );
       } else {
         output.log(
           "  No token launched yet. Use `acp token launch` to create one."

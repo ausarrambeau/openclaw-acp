@@ -26,10 +26,15 @@ function removeFlags(args: string[], ...flags: string[]): string[] {
 }
 
 function getFlagValue(args: string[], flag: string): string | undefined {
+  // --flag value
   const idx = args.indexOf(flag);
   if (idx !== -1 && idx + 1 < args.length) {
     return args[idx + 1];
   }
+  // --flag=value
+  const prefix = flag + "=";
+  const eq = args.find((a) => typeof a === "string" && a.startsWith(prefix));
+  if (eq) return eq.slice(prefix.length);
   return undefined;
 }
 
@@ -61,6 +66,8 @@ Commands:
   job create <wallet> <offering> [flags] Start a job with an agent
     --requirements '<json>'              Service requirements (JSON)
   job status <jobId>                     Check job status
+  job active [page] [pageSize]            List active jobs (or use --page/--pageSize)
+  job completed [page] [pageSize]         List completed jobs (or use --page/--pageSize)
 
   token launch <symbol> <desc> [flags]   Launch agent token
     --image <url>                        Token image URL
@@ -131,6 +138,15 @@ Subcommands:
   status <jobId>
     Check job status and deliverable.
     Example: acp job status 12345
+
+  active [page] [pageSize]
+    List active jobs. Pagination: positionals (e.g. acp job active 1 2) or
+    --page N --pageSize N. 
+    Example: acp job active --page 1 --pageSize 2
+
+  completed [page] [pageSize]
+    List completed jobs. Same pagination as active.
+    Example: acp job completed --page 1 --pageSize 2
 `,
   token: `
 acp token — Manage your agent token
@@ -278,7 +294,9 @@ async function main(): Promise<void> {
 
     case "browse": {
       const { browse } = await import("../src/commands/browse.js");
-      const query = [subcommand, ...rest].filter((a) => !a.startsWith("-")).join(" ");
+      const query = [subcommand, ...rest]
+        .filter((a) => !a.startsWith("-"))
+        .join(" ");
       return browse(query);
     }
 
@@ -302,6 +320,24 @@ async function main(): Promise<void> {
       }
       if (subcommand === "status") {
         return job.status(rest[0]);
+      }
+      if (subcommand === "active" || subcommand === "completed") {
+        const pageStr = getFlagValue(rest, "--page") ?? rest[0];
+        const pageSizeStr = getFlagValue(rest, "--pageSize") ?? rest[1];
+        const page =
+          pageStr != null && /^\d+$/.test(String(pageStr))
+            ? parseInt(String(pageStr), 10)
+            : undefined;
+        const pageSize =
+          pageSizeStr != null && /^\d+$/.test(String(pageSizeStr))
+            ? parseInt(String(pageSizeStr), 10)
+            : undefined;
+        const opts = {
+          page: Number.isNaN(page) ? undefined : page,
+          pageSize: Number.isNaN(pageSize) ? undefined : pageSize,
+        };
+        if (subcommand === "active") return job.active(opts);
+        return job.completed(opts);
       }
       console.log(COMMAND_HELP.job);
       return;
@@ -339,8 +375,10 @@ async function main(): Promise<void> {
       if (subcommand === "resource") {
         const resourceSubcommand = rest[0];
         if (resourceSubcommand === "init") return sell.resourceInit(rest[1]);
-        if (resourceSubcommand === "create") return sell.resourceCreate(rest[1]);
-        if (resourceSubcommand === "delete") return sell.resourceDelete(rest[1]);
+        if (resourceSubcommand === "create")
+          return sell.resourceCreate(rest[1]);
+        if (resourceSubcommand === "delete")
+          return sell.resourceDelete(rest[1]);
         console.log(COMMAND_HELP.sell);
         return;
       }
@@ -358,7 +396,8 @@ async function main(): Promise<void> {
       if (subcommand === "start") return serve.start();
       if (subcommand === "stop") return serve.stop();
       if (subcommand === "status") return serve.status();
-      if (subcommand === "logs") return serve.logs(hasFlag(rest, "--follow", "-f"));
+      if (subcommand === "logs")
+        return serve.logs(hasFlag(rest, "--follow", "-f"));
       console.log(COMMAND_HELP.serve);
       return;
     }

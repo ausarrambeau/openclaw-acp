@@ -24,11 +24,20 @@ const __dirname = path.dirname(__filename);
 // -- Start --
 
 const SELLER_LOG_PATH = path.resolve(LOGS_DIR, "seller.log");
+const OFFERINGS_ROOT = path.resolve(ROOT, "src", "seller", "offerings");
 
 function ensureLogsDir(): void {
   if (!fs.existsSync(LOGS_DIR)) {
     fs.mkdirSync(LOGS_DIR, { recursive: true });
   }
+}
+
+function offeringHasLocalFiles(offeringName: string): boolean {
+  const dir = path.join(OFFERINGS_ROOT, offeringName);
+  return (
+    fs.existsSync(path.join(dir, "handlers.ts")) &&
+    fs.existsSync(path.join(dir, "offering.json"))
+  );
 }
 
 export async function start(): Promise<void> {
@@ -38,17 +47,37 @@ export async function start(): Promise<void> {
     return;
   }
 
-  // Warn if no offerings are listed on ACP
+  // Warn if no offerings are listed on ACP, or if any registered offering is missing local handlers.ts or offering.json
   try {
     const agentInfo = await getMyAgentInfo();
     if (!agentInfo.jobs || agentInfo.jobs.length === 0) {
-      output.warn("No offerings registered on ACP. Run `acp sell create <name>` first.\n");
+      output.warn(
+        "No offerings registered on ACP. Run `acp sell create <name>` first.\n"
+      );
+    } else {
+      const missing = agentInfo.jobs
+        .filter((job) => !offeringHasLocalFiles(job.name))
+        .map((job) => job.name);
+      if (missing.length > 0) {
+        output.warn(
+          `No local offering files for ${
+            missing.length
+          } offering(s) registered on ACP: ${missing.join(", ")}. ` +
+            `Each needs src/seller/offerings/<name>/handlers.ts and offering.json, or jobs for these offerings will fail at runtime.\n`
+        );
+      }
     }
   } catch {
     // Non-fatal — proceed with starting anyway
   }
 
-  const sellerScript = path.resolve(__dirname, "..", "seller", "runtime", "seller.ts");
+  const sellerScript = path.resolve(
+    __dirname,
+    "..",
+    "seller",
+    "runtime",
+    "seller.ts"
+  );
   const tsxBin = path.resolve(ROOT, "node_modules", ".bin", "tsx");
 
   ensureLogsDir();
@@ -142,7 +171,9 @@ export async function status(): Promise<void> {
 
 export async function logs(follow: boolean = false): Promise<void> {
   if (!fs.existsSync(SELLER_LOG_PATH)) {
-    output.log("  No log file found. Start the seller first: `acp serve start`\n");
+    output.log(
+      "  No log file found. Start the seller first: `acp serve start`\n"
+    );
     return;
   }
 

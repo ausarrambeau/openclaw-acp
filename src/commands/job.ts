@@ -1,6 +1,8 @@
 // =============================================================================
 // acp job create <wallet> <offering> [--requirements '{}']
 // acp job status <jobId>
+// acp job active
+// acp job completed
 // =============================================================================
 
 import client from "../lib/client.js";
@@ -27,7 +29,9 @@ export async function create(
     output.output(job.data, (data) => {
       output.heading("Job Created");
       output.field("Job ID", data.data?.jobId ?? data.jobId);
-      output.log("\n  Job submitted. Use `acp job status <jobId>` to check progress.\n");
+      output.log(
+        "\n  Job submitted. Use `acp job status <jobId>` to check progress.\n"
+      );
     });
   } catch (e) {
     output.fatal(
@@ -51,18 +55,26 @@ export async function status(jobId: string): Promise<void> {
     const data = job.data.data;
 
     const memoHistory = (data.memos || []).map(
-      (memo: { phase: string; content: string; createdAt: string }) => ({
-        phase: memo.phase,
+      (memo: {
+        nextPhase: string;
+        content: string;
+        createdAt: string;
+        status: string;
+      }) => ({
+        nextPhase: memo.nextPhase,
         content: memo.content,
-        timestamp: memo.createdAt,
+        createdAt: memo.createdAt,
+        status: memo.status,
       })
     );
 
     const result = {
       jobId: data.id,
       phase: data.phase,
-      providerName: data.providerAgent?.name ?? null,
-      providerWalletAddress: data.providerAgent?.walletAddress ?? null,
+      providerName: data.providerName ?? null,
+      providerWalletAddress: data.providerAddress ?? null,
+      clientName: data.clientName ?? null,
+      clientWalletAddress: data.clientAddress ?? null,
       deliverable: data.deliverable,
       memoHistory,
     };
@@ -70,6 +82,8 @@ export async function status(jobId: string): Promise<void> {
     output.output(result, (r) => {
       output.heading(`Job ${r.jobId}`);
       output.field("Phase", r.phase);
+      output.field("Client", r.clientName || "-");
+      output.field("Client Wallet", r.clientWalletAddress || "-");
       output.field("Provider", r.providerName || "-");
       output.field("Provider Wallet", r.providerWalletAddress || "-");
       if (r.deliverable) {
@@ -78,7 +92,7 @@ export async function status(jobId: string): Promise<void> {
       if (r.memoHistory.length > 0) {
         output.log("\n  History:");
         for (const m of r.memoHistory) {
-          output.log(`    [${m.phase}] ${m.content} (${m.timestamp})`);
+          output.log(`    [${m.nextPhase}] ${m.content} (${m.createdAt})`);
         }
       }
       output.log("");
@@ -86,6 +100,105 @@ export async function status(jobId: string): Promise<void> {
   } catch (e) {
     output.fatal(
       `Failed to get job status: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+}
+
+type JobListItem = {
+  id: number | string;
+  phase?: unknown;
+  price?: unknown;
+  priceType?: unknown;
+  clientAddress?: unknown;
+  providerAddress?: unknown;
+  name?: unknown;
+  deliverable?: unknown;
+};
+
+function formatPrice(price: unknown, priceType?: unknown): string {
+  const p = price != null ? String(price) : "-";
+  return String(priceType).toLowerCase() === "fixed"
+    ? `${p} USDC`
+    : priceType != null
+    ? `${p} ${priceType}`
+    : p;
+}
+
+export type JobListOptions = {
+  page?: number;
+  pageSize?: number;
+};
+
+export async function active(options: JobListOptions = {}): Promise<void> {
+  try {
+    const params: Record<string, number> = {};
+    if (options.page != null) params.page = options.page;
+    if (options.pageSize != null) params.pageSize = options.pageSize;
+    const res = await client.get<{ data: JobListItem[] }>("/acp/jobs/active", {
+      params,
+    });
+    const jobs = res.data.data;
+
+    output.output({ jobs }, ({ jobs: list }) => {
+      output.heading("Active Jobs");
+      if (list.length === 0) {
+        output.log("  No active jobs.\n");
+        return;
+      }
+      for (const j of list) {
+        output.field("Job ID", j.id);
+        if (j.phase) output.field("Phase", j.phase);
+        if (j.name) output.field("Name", j.name);
+        if (j.price != null)
+          output.field("Price", formatPrice(j.price, j.priceType));
+        if (j.clientAddress) output.field("Client", j.clientAddress);
+        if (j.providerAddress) output.field("Provider", j.providerAddress);
+        if (j.deliverable) output.field("Deliverable", j.deliverable);
+        output.log("");
+      }
+    });
+  } catch (e) {
+    output.fatal(
+      `Failed to get active jobs: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+}
+
+export async function completed(options: JobListOptions = {}): Promise<void> {
+  try {
+    const params: Record<string, number> = {};
+    if (options.page != null) params.page = options.page;
+    if (options.pageSize != null) params.pageSize = options.pageSize;
+    const res = await client.get<{ data: JobListItem[] }>(
+      "/acp/jobs/completed",
+      {
+        params,
+      }
+    );
+    const jobs = res.data.data;
+
+    output.output({ jobs }, ({ jobs: list }) => {
+      output.heading("Completed Jobs");
+      if (list.length === 0) {
+        output.log("  No completed jobs.\n");
+        return;
+      }
+      for (const j of list) {
+        output.field("Job ID", j.id);
+        if (j.name) output.field("Name", j.name);
+        if (j.price != null)
+          output.field("Price", formatPrice(j.price, j.priceType));
+        if (j.clientAddress) output.field("Client", j.clientAddress);
+        if (j.providerAddress) output.field("Provider", j.providerAddress);
+        if (j.deliverable) output.field("Deliverable", j.deliverable);
+        output.log("");
+      }
+    });
+  } catch (e) {
+    output.fatal(
+      `Failed to get completed jobs: ${
+        e instanceof Error ? e.message : String(e)
+      }`
     );
   }
 }

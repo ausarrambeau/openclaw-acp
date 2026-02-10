@@ -68,7 +68,10 @@ export function heading(title: string): void {
 }
 
 /** Print a key-value pair. */
-export function field(label: string, value: string | number | boolean | null | undefined): void {
+export function field(
+  label: string,
+  value: string | number | boolean | null | undefined
+): void {
   if (!jsonMode) {
     console.log(`  ${c.dim(label.padEnd(18))} ${value ?? "-"}`);
   }
@@ -79,7 +82,10 @@ export function field(label: string, value: string | number | boolean | null | u
  * In JSON mode: prints JSON to stdout.
  * In human mode: calls the formatter function.
  */
-export function output(data: unknown, humanFormatter: (data: any) => void): void {
+export function output(
+  data: unknown,
+  humanFormatter: (data: any) => void
+): void {
   if (jsonMode) {
     json(data);
   } else {
@@ -91,4 +97,8 @@ export function output(data: unknown, humanFormatter: (data: any) => void): void
 export function fatal(msg: string): never {
   error(msg);
   process.exit(1);
+}
+
+export function formatSymbol(symbol: string): string {
+  return symbol[0].startsWith("$") ? symbol : `$${symbol}`;
 }

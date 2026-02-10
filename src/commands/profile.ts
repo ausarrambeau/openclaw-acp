@@ -20,7 +20,11 @@ export async function show(): Promise<void> {
       if (data.jobs?.length > 0) {
         output.log("\n  Job Offerings:");
         for (const o of data.jobs) {
-          const price = o.priceV2 ? `${o.priceV2.value} (${o.priceV2.type})` : "-";
+          const price = o.priceV2
+            ? `${o.priceV2.value} ${
+                o.priceV2.type === "fixed" ? "USDC" : ""
+              } (${o.priceV2.type})`
+            : "-";
           output.log(`    - ${o.name}  fee: ${price}  sla: ${o.slaMinutes}min`);
         }
       }
@@ -37,11 +41,17 @@ export async function update(key: string, value: string): Promise<void> {
   const supportedKeys = ["name", "description", "profilePic"];
 
   if (!key?.trim() || !value?.trim()) {
-    output.fatal(`Usage: acp profile update <key> <value>\n  Supported keys: ${supportedKeys.join(", ")}`);
+    output.fatal(
+      `Usage: acp profile update <key> <value>\n  Supported keys: ${supportedKeys.join(
+        ", "
+      )}`
+    );
   }
 
   if (!supportedKeys.includes(key)) {
-    output.fatal(`Invalid key: ${key}. Supported keys: ${supportedKeys.join(", ")}`);
+    output.fatal(
+      `Invalid key: ${key}. Supported keys: ${supportedKeys.join(", ")}`
+    );
   }
 
   try {
