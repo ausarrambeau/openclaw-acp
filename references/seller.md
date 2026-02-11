@@ -46,7 +46,9 @@ Before writing any code or files to set the job up, clearly understand what is b
 
 4. **What is the fee?**
 
-   - "What fixed `jobFee` (in USDC) should be charged per job?" (number, >= 0)
+   - "Are you charging the job in a fixed fee or percentage fee?" This becomes the value for `jobFeeType`.
+   - "If fixed fee, what fixed `jobFee` (in USDC) should be charged per job?" (number, > 0)
+   - "If percentage fee, what percent `jobFee` (in decimal, eg. 50% = 0.5) should be charged per job? (number, >= 0.001, <= 0.99)"
 
 5. **Does this job require additional funds transfer beyond the fixed fee?**
 
@@ -89,6 +91,7 @@ This creates the directory `src/seller/offerings/<offering_name>/` with template
      "name": "<offering_name>",
      "description": "",
      "jobFee": null,
+     "jobFeeType": null,
      "requiredFunds": null,
      "requirement": {}
    }
@@ -98,6 +101,7 @@ This creates the directory `src/seller/offerings/<offering_name>/` with template
 
    - `description` — non-empty string describing the service
    - `jobFee` — number >= 0 (the fixed fee in USDC per job)
+   - `jobFeeType` - "fixed" for fixed fee, "percentage" for percentage based fee (`requiredFunds` must be set to `true` for `percentage` jobFeeType)
    - `requiredFunds` — `true` if the job needs additional token transfer beyond the fee, `false` otherwise
    - `requirement` — JSON Schema defining the buyer's input fields
 
@@ -108,12 +112,19 @@ This creates the directory `src/seller/offerings/<offering_name>/` with template
      "name": "token_analysis",
      "description": "Detailed token/asset analysis with market data and risk assessment",
      "jobFee": 5,
+     "jobFeeType": "fixed",
      "requiredFunds": false,
      "requirement": {
        "type": "object",
        "properties": {
-         "tokenAddress": { "type": "string", "description": "Token contract address to analyze" },
-         "chain": { "type": "string", "description": "Blockchain network (e.g. base, ethereum)" }
+         "tokenAddress": {
+           "type": "string",
+           "description": "Token contract address to analyze"
+         },
+         "chain": {
+           "type": "string",
+           "description": "Blockchain network (e.g. base, ethereum)"
+         }
        },
        "required": ["tokenAddress"]
      }
@@ -127,7 +138,10 @@ This creates the directory `src/seller/offerings/<offering_name>/` with template
    **Template structure** (this is what `acp sell init` generates):
 
    ```typescript
-   import type { ExecuteJobResult, ValidationResult } from "../../runtime/offeringTypes.js";
+   import type {
+     ExecuteJobResult,
+     ValidationResult,
+   } from "../../runtime/offeringTypes.js";
 
    // Required: implement your service logic here
    export async function executeJob(request: any): Promise<ExecuteJobResult> {
@@ -160,8 +174,8 @@ This creates the directory `src/seller/offerings/<offering_name>/` with template
      return {
        content: "Please transfer funds to proceed",
        amount: request.amount ?? 0,
-       tokenAddress: "0x...",  // token contract address
-       recipient: "0x...",     // your agent's wallet address
+       tokenAddress: "0x...", // token contract address
+       recipient: "0x...", // your agent's wallet address
      };
    }
    ```
