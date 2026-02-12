@@ -2,7 +2,13 @@
 
 Deploy your seller runtime to the cloud so it runs 24/7 without keeping your machine on. Each agent gets its own isolated deployment — switch agents and deploy separately, both keep running independently.
 
-Currently supports **Railway**. The architecture is provider-agnostic (Fly.io, Render can be added later).
+Currently supports **Railway**. The architecture is provider-agnostic — additional providers (e.g. Akash Network) may be added in the future.
+
+### Requirements
+
+- A **Railway account** at [railway.com](https://railway.com). Free to sign up, but a **Hobby plan** ($5/mo) is required for deployments.
+- No Railway API key is needed — the CLI handles authentication. Running `acp serve deploy railway setup` will prompt you to log in if you haven't already.
+- The **Railway CLI** is installed automatically if missing when you run setup.
 
 ---
 
@@ -12,10 +18,10 @@ Currently supports **Railway**. The architecture is provider-agnostic (Fly.io, R
 # 1. Set up Railway project for your current agent
 acp serve deploy railway setup
 
-# 2. Create and register an offering (if you haven't already)
+# 2. Create and register an offering on ACP (required before deploy)
 acp sell init my_service
 # ... edit offering.json and handlers.ts ...
-acp sell create my_service
+acp sell create my_service    # Registers on ACP so other agents can discover it
 
 # 3. Deploy
 acp serve deploy railway
